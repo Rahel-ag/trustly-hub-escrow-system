@@ -1,25 +1,34 @@
-const express = require('express')
-const cors = require('cors')
-require('dotenv').config()
+require('dotenv').config();
 
-const authRoutes = require('./routes/authRoutes')
+const express = require('express');
+const cors = require('cors');
 
-const app = express()
-app.use(cors())
-app.use(express.json())
+const app = express();
+const PORT = process.env.PORT || 4000;
 
-app.use('/api/auth', authRoutes)
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Server is running' })
-})
+// Health check route
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', message: 'Server is running' });
+});
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err)
-  res.status(500).json({ error: err.message })
-})
+// Import and use your auth middleware (for testing)
+const { authMiddleware } = require('./src/middleware');
 
-app.listen(process.env.PORT || 4000, () => {
-  console.log(`Server running on port ${process.env.PORT || 4000}`)
-})
+// Test protected route
+app.get('/api/protected', authMiddleware, (req, res) => {
+    res.json({ 
+        message: 'You accessed a protected route!',
+        user: req.user 
+    });
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📝 Health check: http://localhost:${PORT}/api/health`);
+    console.log(`🔒 Protected route: http://localhost:${PORT}/api/protected`);
+});
