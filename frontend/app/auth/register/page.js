@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [role, setRole] = useState('buyer'); 
+  const [role, setRole] = useState('Client'); 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -169,14 +169,14 @@ const handleRoleSelect = (selectedRole) => {
               {/* Buyer Button */}
               <button 
                 type="button" 
-                onClick={() => handleRoleSelect('buyer')} 
+                onClick={() => handleRoleSelect('Client')} 
                 className={`flex flex-col items-center gap-1 py-3 px-3 rounded-xl border-2 text-sm font-semibold transition cursor-pointer ${
-                  role === 'buyer' 
+                  role === 'Client' 
                     ? 'border-[#00e699] bg-[#e6fbf4] text-gray-900' 
                     : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 }`}
               >
-                <svg className={`w-5 h-5 ${role === 'buyer' ? 'text-[#00e699]' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <svg className={`w-5 h-5 ${role === 'Client' ? 'text-[#00e699]' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.6 8M7 13h10m0 0l1.6 8M17 21a1 1 0 100-2 1 1 0 000 2zm-10 0a1 1 0 100-2 1 1 0 000 2z" />
                 </svg>
                 <span className="mt-1 text-xs sm:text-sm font-bold">Buyer / Client</span>
@@ -186,14 +186,14 @@ const handleRoleSelect = (selectedRole) => {
               {/* Seller Button */}
               <button 
                 type="button" 
-                onClick={() => handleRoleSelect('seller')} 
+                onClick={() => handleRoleSelect('Freelancer')} 
                 className={`flex flex-col items-center gap-1 py-3 px-3 rounded-xl border-2 text-sm font-semibold transition cursor-pointer ${
-                  role === 'seller' 
+                  role === 'Freelancer' 
                     ? 'border-[#00e699] bg-[#e6fbf4] text-gray-900' 
                     : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 }`}
               >
-                <svg className={`w-5 h-5 ${role === 'seller' ? 'text-[#00e699]' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <svg className={`w-5 h-5 ${role === 'Freelancer' ? 'text-[#00e699]' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 <span className="mt-1 text-xs sm:text-sm font-bold">Seller / Freelancer</span>
