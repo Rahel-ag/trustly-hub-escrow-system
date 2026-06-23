@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes')
 const proposalRoutes = require('./routes/proposalRoutes')
 const hireRoutes = require('./routes/hireRoutes')
 const escrowRoutes = require('./routes/escrowRoutes') 
+const jobRoutes = require('./routes/jobRoutes');
 const app = express()
 app.use(cors())
 app.use(express.json())
@@ -16,6 +17,10 @@ app.use('/api/auth', authRoutes)
 app.use('/api/proposals', proposalRoutes)
 app.use('/api/hire', hireRoutes)
 app.use('/api/escrow', escrowRoutes)
+app.use('/api/jobs', jobRoutes);
+
+app.use('/api/chapa', require('./routes/chapaRoutes'));
+
 
 app.get('/', (req, res) => {
   res.json({ message: 'Server is running' })
