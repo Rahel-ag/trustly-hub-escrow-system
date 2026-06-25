@@ -41,11 +41,11 @@ const handleRoleSelect = (selectedRole) => {
     setLoading(true);
     try {
       const response = await fetch(
-  `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
+  `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`,
   {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, email, phone, password, role }),
+        body: JSON.stringify({ fullName: `${firstName} ${lastName}`.trim(), email, phone, password, role }),
       });
 
       if (!response.ok) {
