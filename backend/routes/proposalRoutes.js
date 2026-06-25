@@ -17,18 +17,20 @@ const verifyToken = (req, res, next) => {
 
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { jobId, message } = req.body;
+    const { jobId, coverLetter, bidPrice } = req.body;  // ← match frontend fields
     const freelancerId = req.user.id;
-    if (!jobId || !message) return res.status(400).json({ error: 'Missing required fields' });
+
+    if (!jobId || !coverLetter) return res.status(400).json({ error: 'Missing required fields' });
+
     const exists = await proposalQueries.checkExistingProposal(jobId, freelancerId);
     if (exists) return res.status(409).json({ error: 'Already proposed for this job' });
-    const proposal = await proposalQueries.createProposal(jobId, freelancerId, message);
+
+    const proposal = await proposalQueries.createProposal(jobId, freelancerId, coverLetter, bidPrice);
     res.status(201).json({ message: 'Proposal created', proposal });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
 router.get('/job/:jobId', verifyToken, async (req, res) => {
   try {
     const proposals = await proposalQueries.getProposalsByJob(req.params.jobId);
