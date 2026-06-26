@@ -12,7 +12,7 @@ export default function EscrowDepositPage() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [userProfile, setUserProfile] = useState({ name: 'Client', role: 'Client' });
+  const [userProfile, setUserProfile] = useState({ name: '', role: '' });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -33,7 +33,7 @@ export default function EscrowDepositPage() {
       }
 
       setUserProfile({
-        name: decodedPayload.name || 'Client User',
+        name: decodedPayload.name || decodedPayload.email?.split('@')[0] || 'Client',
         role: decodedPayload.role ? decodedPayload.role.charAt(0).toUpperCase() + decodedPayload.role.slice(1) : 'Client'
       });
     } catch (err) { 
@@ -47,11 +47,11 @@ export default function EscrowDepositPage() {
 
   async function fetchJob() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs/${jobId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('json')) {
+        const data = await res.json();
         setJobTitle(data.data?.title || data.title || '');
       }
     } catch (err) {
@@ -73,28 +73,47 @@ export default function EscrowDepositPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/escrow/deposit`, {
+      // Step 1: Prepare escrow via Chapa
+      const prepareRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chapa/prepare`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ jobId, amount: parseFloat(amount), paymentMethod }),
+        body: JSON.stringify({ jobId, amount: parseFloat(amount) }),
       });
-      
-      if (res.ok) {
-        const data = await res.json();
-        router.push(`/escrow/${data.escrow?.id || data.id}`);
+
+      const prepareData = await prepareRes.json();
+      if (!prepareRes.ok) throw new Error(prepareData.error || 'Failed to prepare escrow');
+
+      const escrowId = prepareData.escrowId;
+
+      // Step 2: Initialize Chapa payment
+      const initRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chapa/initialize`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ escrowId, amount: parseFloat(amount) }),
+      });
+
+      const initData = await initRes.json();
+      if (!initRes.ok) throw new Error(initData.error || 'Failed to initialize payment');
+
+      // If already paid, redirect to status page instead of Chapa
+      if (initData.already_paid) {
+        router.push(`/escrow/${escrowId}`);
         return;
       }
-    } catch (err) {
-      console.log('Backend endpoints not finalized yet, triggering sandbox fallback route confirmation.');
-    }
 
-    // Bulletproof frontend workspace testing handler (Simulates backend complete success)
-    alert('Payment processing simulated successfully. Opening active escrow contract tracker...');
-    router.push(`/escrow/123`);
-    setLoading(false);
+      // Step 3: Redirect to Chapa checkout
+      window.location.href = initData.paymentUrl;
+    } catch (err) {
+      setError(err.message || 'Deposit failed');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

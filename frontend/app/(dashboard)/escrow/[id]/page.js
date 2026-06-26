@@ -13,7 +13,12 @@ export default function EscrowStatusPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [userProfile, setUserProfile] = useState({ name: 'User', role: 'Freelancer' });
+  const [submissionFile, setSubmissionFile] = useState(null);
+  const [submissionMessage, setSubmissionMessage] = useState('');
+  const [userProfile, setUserProfile] = useState({ name: '', role: '' });
+  const [verifying, setVerifying] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState('');
+  const [cameFromChapa, setCameFromChapa] = useState(false);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -28,27 +33,115 @@ export default function EscrowStatusPage({ params }) {
       const payloadBase64 = token.split('.')[1];
       const decodedPayload = JSON.parse(atob(payloadBase64));
       setUserProfile({
-        name: decodedPayload.name || 'User Profile',
-        role: decodedPayload.role ? decodedPayload.role.charAt(0).toUpperCase() + decodedPayload.role.slice(1) : 'Freelancer'
+        name: decodedPayload.name || decodedPayload.email?.split('@')[0] || 'User',
+        role: decodedPayload.role ? decodedPayload.role.charAt(0).toUpperCase() + decodedPayload.role.slice(1) : 'Client'
       });
     } catch (e) {
       console.error("Failed to parse auth token profile context", e);
     }
 
+    // Detect if user was redirected from Chapa payment
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('status') === 'success' || params.get('tx_ref')) {
+        setCameFromChapa(true);
+      }
+    }
+
     fetchEscrow();
   }, [id]);
 
+  // Auto-verify when escrow loads and is pending_deposit
+  useEffect(() => {
+    if (!escrow || escrow.status !== 'pending_deposit' || !token || verifying) return;
+
+    let cancelled = false;
+    let retries = 0;
+    const maxRetries = 20;
+
+    async function verifyWithRetry() {
+      while (retries < maxRetries && !cancelled) {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chapa/verify`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ escrowId: escrow.id }),
+          });
+          if (res.ok && res.headers.get('content-type')?.includes('json')) {
+            const data = await res.json();
+            if (data.success && data.status === 'funded') {
+              setEscrow(prev => prev ? { ...prev, status: 'funded' } : null);
+              setVerifyMsg('Payment confirmed!');
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Verification attempt failed:', err);
+        }
+        retries++;
+        if (retries < maxRetries && !cancelled) {
+          setVerifyMsg(`Verifying payment with Chapa... (attempt ${retries}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, 4000));
+        }
+      }
+      setVerifyMsg('Payment not yet confirmed. You can check again manually below.');
+    }
+
+    verifyWithRetry();
+    return () => { cancelled = true; };
+  }, [escrow?.id, escrow?.status, cameFromChapa]);
+
+  async function verifyPayment(escrowId) {
+    setVerifying(true);
+    setVerifyMsg('Verifying payment with Chapa...');
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chapa/verify`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ escrowId }),
+      });
+      if (res.ok && res.headers.get('content-type')?.includes('json')) {
+        const data = await res.json();
+        if (data.success && data.status === 'funded') {
+          setEscrow(prev => prev ? { ...prev, status: 'funded' } : null);
+          setVerifyMsg('Payment confirmed!');
+        } else {
+          setVerifyMsg(data.message || 'Waiting for payment confirmation...');
+        }
+      } else {
+        setVerifyMsg('Could not reach verification service.');
+      }
+    } catch (err) {
+      console.error('Payment verification failed:', err);
+      setVerifyMsg('Verification error.');
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   async function fetchEscrow() {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/escrow/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/escrow/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      if (response.ok) {
+      if (response.ok && response.headers.get('content-type')?.includes('json')) {
         const data = await response.json();
         setEscrow(data);
+        setLoading(false);
+        return;
+      }
+      
+      if (response.status === 401) {
+        setError('Session expired. Please log in again.');
         setLoading(false);
         return;
       }
@@ -56,12 +149,11 @@ export default function EscrowStatusPage({ params }) {
       console.log('Backend server unreachable, running sandbox layout fallback.');
     }
 
-    // Bulletproof sandbox fallback (Silences console error crash screen completely)
     setEscrow({
       id: id || '123',
       amount: 1250.00,
-      status: 'funded', 
-      job_id: '5e28b4d3-dd55-4134-9f60-aef3ae86f11a',
+      status: 'pending_deposit',
+      job_id: id || 'unknown',
       created_at: new Date().toISOString(),
     });
     setLoading(false);
@@ -71,16 +163,20 @@ export default function EscrowStatusPage({ params }) {
     setSubmitting(true);
     setError('');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/escrow/${id}/submit`, {
+      const formData = new FormData();
+      if (submissionFile) formData.append('file', submissionFile);
+      if (submissionMessage) formData.append('message', submissionMessage);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/escrow/${id}/submit`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: formData
       });
 
       if (response.ok) {
-        alert('Work successfully submitted for client verification review.');
+        console.log('Work successfully submitted for client verification review.');
         setEscrow(prev => prev ? { ...prev, status: 'submitted' } : null);
       } else {
         const errData = await response.json().catch(() => ({}));
@@ -113,6 +209,15 @@ export default function EscrowStatusPage({ params }) {
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center bg-[#F1F3F6]">
       <p className="text-gray-500">Loading escrow information...</p>
+    </div>
+  );
+
+  if (verifying && !escrow) return (
+    <div className="flex min-h-screen items-center justify-center bg-[#F1F3F6]">
+      <div className="text-center">
+        <p className="text-gray-500 mb-2">{verifyMsg || 'Verifying payment...'}</p>
+        <div className="w-6 h-6 border-2 border-[#00C6A9] border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
     </div>
   );
 
@@ -250,8 +355,36 @@ export default function EscrowStatusPage({ params }) {
               })}
             </div>
 
+            {/* Pending Deposit - Payment Verification Area */}
+            {escrow.status === 'pending_deposit' && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 mt-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Waiting for payment confirmation</p>
+                    {verifyMsg && (
+                      <p className="text-xs text-gray-500 mt-1">{verifyMsg}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => verifyPayment(escrow.id)}
+                    disabled={verifying}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00C6A9] text-white text-sm font-semibold hover:brightness-110 transition disabled:opacity-50"
+                  >
+                    {verifying ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      'Check Payment Status'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Role-Based Action Area */}
-            {userProfile.role === 'Client' && (escrow.status === 'funded' || escrow.status === 'held') && (
+            {userProfile.role === 'Client' && (escrow.status === 'funded' || escrow.status === 'held' || escrow.status === 'submitted') && (
               <div className="bg-white rounded-xl border border-gray-200 p-6 flex gap-4 mt-4 shadow-sm">
                 <button
                   onClick={() => router.push(`/jobs/${escrow.job_id}/review`)}
@@ -269,6 +402,24 @@ export default function EscrowStatusPage({ params }) {
 
             {userProfile.role === 'Freelancer' && (escrow.status === 'funded' || escrow.status === 'held') && (
               <div className="bg-white rounded-xl border border-gray-200 p-6 mt-4 shadow-sm">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Message to Client</label>
+                  <textarea
+                    value={submissionMessage}
+                    onChange={(e) => setSubmissionMessage(e.target.value)}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-[#00C6A9]"
+                    placeholder="Describe what you've completed..."
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Upload Completed Work</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setSubmissionFile(e.target.files[0])}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#00C6A9] file:text-white hover:file:brightness-110"
+                  />
+                </div>
                 <button
                   onClick={handleSubmitWork}
                   disabled={submitting}

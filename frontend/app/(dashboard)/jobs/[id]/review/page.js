@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Elsie } from 'next/font/google';
 
 export default function ReviewApprovePage() {
   const { id } = useParams();
@@ -28,16 +27,16 @@ export default function ReviewApprovePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load escrow');
       setEscrow(data.escrow);
-  } catch (err) {
-  if (err.message.includes('Unexpected token') || err.message.includes('JSON')) {
-    setError(''); // Keep this empty to hide the red banner until the route is ready
-  } else {
-    setError(err.message);
+    } catch (err) {
+      if (err.message.includes('Unexpected token') || err.message.includes('JSON')) {
+        setError('');
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   }
- } finally {
-  setLoading(false);
-  }
-}
 
 
   async function handleApprove() {
@@ -58,22 +57,8 @@ export default function ReviewApprovePage() {
     }
   }
 
-  async function handleReject() {
-    setActing(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/escrow/${escrow.id}/dispute`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to raise dispute');
-      setSuccess('Dispute raised successfully.');
-      setEscrow((prev) => ({ ...prev, status: 'disputed' }));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setActing(false);
-    }
+  function handleDispute() {
+    router.push(`/disputes/new?escrowId=${escrow.id}`);
   }
 
   if (loading) return (
@@ -135,16 +120,24 @@ export default function ReviewApprovePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Submitted deliverable</p>
+                  <p className="text-sm font-medium text-gray-900">{escrow.submitted_file_name ? escrow.submitted_file_name : 'Submitted deliverable'}</p>
                   <p className="text-xs text-gray-400">Escrow amount: {escrow.amount} Birr</p>
                 </div>
               </div>
-              <button className="flex items-center gap-1 text-xs font-semibold text-[#00C6A9] border border-[#00C6A9] rounded-lg px-3 py-1.5 hover:bg-[#00C6A9] hover:text-white transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download
-              </button>
+              {escrow.submitted_file_name ? (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_API_URL.replace('/api', '')}/uploads/${escrow.submitted_file_name}`}
+                  target="_blank"
+                  className="flex items-center gap-1 text-xs font-semibold text-[#00C6A9] border border-[#00C6A9] rounded-lg px-3 py-1.5 hover:bg-[#00C6A9] hover:text-white transition"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </a>
+              ) : (
+                <span className="text-xs text-gray-400">No file attached</span>
+              )}
             </div>
           </div>
 
@@ -152,9 +145,7 @@ export default function ReviewApprovePage() {
           <div className="bg-white rounded-xl border-2 border-blue-400 p-6">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Freelancer Message</h2>
             <div className="bg-blue-50 rounded-lg p-4 text-sm text-gray-700 text-center leading-relaxed mb-3">
-              Hi please find the completed work as per the requirements<br />
-              let me know if any changes are needed.<br />
-              Thank you!
+              {escrow.submission_message || 'No message provided by freelancer.'}
             </div>
             <p className="text-xs text-gray-400">
               Submitted on {new Date(escrow.created_at).toLocaleDateString('en-US', {
@@ -164,7 +155,7 @@ export default function ReviewApprovePage() {
           </div>
 
           {/* Actions */}
-          {escrow.status === 'funded' && (
+          {(escrow.status === 'funded' || escrow.status === 'submitted') && (
             <div className="flex gap-4">
               <button
                 onClick={handleApprove}
@@ -177,14 +168,14 @@ export default function ReviewApprovePage() {
                 {acting ? 'Processing...' : 'Approve & Release Payment'}
               </button>
               <button
-                onClick={handleReject}
+                onClick={handleDispute}
                 disabled={acting}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-400 text-red-500 font-semibold text-sm hover:bg-red-500 hover:text-white transition disabled:opacity-50"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
-                {acting ? 'Processing...' : 'Reject Work'}
+                {acting ? 'Processing...' : 'Raise Dispute'}
               </button>
             </div>
           )}

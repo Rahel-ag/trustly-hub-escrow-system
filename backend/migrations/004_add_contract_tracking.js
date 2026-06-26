@@ -1,7 +1,6 @@
 exports.up = (pgm) => {
   // 1. Add contract workflow columns to jobs table safely
   pgm.addColumns('jobs', {
-    status: { type: 'varchar(50)', default: 'OPEN' },
     freelancer_id: { type: 'uuid', references: '"users"', onDelete: 'SET NULL' },
     freelancer_name: { type: 'varchar(255)' },
     contract_budget: { type: 'numeric', default: 0 },
@@ -23,7 +22,7 @@ exports.up = (pgm) => {
 exports.down = (pgm) => {
  
   pgm.dropColumns('jobs', [
-    'status', 'freelancer_id', 'freelancer_name', 'contract_budget', 
+    'freelancer_id', 'freelancer_name', 'contract_budget', 
     'work_submitted', 'freelancer_notes', 'submitted_file_name', 
     'submitted_file_size', 'escrow_status'
   ], { ifExists: true });

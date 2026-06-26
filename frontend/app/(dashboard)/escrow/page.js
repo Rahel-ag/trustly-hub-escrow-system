@@ -8,7 +8,7 @@ export default function EscrowListPage() {
   const [escrows, setEscrows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [userProfile, setUserProfile] = useState({ name: 'Freelancer', role: 'Freelancer' });
+  const [userProfile, setUserProfile] = useState({ name: '', role: '' });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -23,7 +23,7 @@ export default function EscrowListPage() {
       const payloadBase64 = token.split('.')[1];
       const decodedPayload = JSON.parse(atob(payloadBase64));
       setUserProfile({
-        name: decodedPayload.name || 'Freelancer User',
+        name: decodedPayload.name || decodedPayload.email?.split('@')[0] || 'User',
         role: decodedPayload.role ? decodedPayload.role.charAt(0).toUpperCase() + decodedPayload.role.slice(1) : 'Freelancer'
       });
     } catch (e) {
@@ -35,30 +35,19 @@ export default function EscrowListPage() {
 
   async function fetchEscrows() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/escrow/my`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/escrow/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('json')) {
         const data = await res.json();
         setEscrows(data.escrows || []);
         setLoading(false);
         return;
       }
     } catch (err) {
-      console.log('Backend connection offline, running list fallback view sandbox.');
+      console.error('Failed to fetch escrows:', err);
     }
-
-    // Bulletproof sandbox fallback (Silences console error entirely)
-    setEscrows([
-      {
-        id: '123',
-        amount: 1250.00,
-        status: 'funded',
-        job_id: '5e28b4d3-dd55-4134-9f60-aef3ae86f11a',
-        created_at: new Date().toISOString(),
-      }
-    ]);
     setLoading(false);
   }
 
@@ -67,6 +56,7 @@ export default function EscrowListPage() {
       case 'funded': return 'bg-teal-100 text-teal-700';
       case 'pending_deposit': return 'bg-yellow-100 text-yellow-700';
       case 'released': return 'bg-green-100 text-green-700';
+      case 'refunded': return 'bg-blue-100 text-blue-700';
       case 'disputed': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -132,12 +122,20 @@ export default function EscrowListPage() {
                       month: 'short', day: 'numeric', year: 'numeric'
                     })}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 flex gap-2">
+                    {userProfile.role === 'Client' && escrow.status === 'pending_deposit' && (
+                      <button
+                        onClick={() => router.push(`/escrow/deposit?jobId=${escrow.job_id}`)}
+                        className="text-xs font-semibold text-white bg-[#00C6A9] rounded-lg px-3 py-1.5 hover:brightness-110 transition"
+                      >
+                        Deposit
+                      </button>
+                    )}
                     <button
                       onClick={() => router.push(`/escrow/${escrow.id}`)}
                       className="text-xs font-semibold text-[#00C6A9] border border-[#00C6A9] rounded-lg px-3 py-1.5 hover:bg-[#00C6A9] hover:text-white transition"
                     >
-                      View Status
+                      View
                     </button>
                   </td>
                 </tr>
