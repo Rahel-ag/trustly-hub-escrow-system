@@ -10,6 +10,7 @@ export default function SubmitWorkPage() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFileObj, setSelectedFileObj] = useState(null);
 
   useEffect(() => {
     if (!jobId) return;
@@ -45,24 +46,23 @@ export default function SubmitWorkPage() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/active-work/${jobId}/submit`, {
+      const formData = new FormData();
+      formData.append('notes', notes);
+      if (selectedFileObj) formData.append('file', selectedFileObj);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hire/active-work/${jobId}/submit`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          notes: notes,
-          fileName: selectedFile ? selectedFile.name : 'project_final_delivery.zip',
-          // FIX 5: Keep fileSize as a string label — matches what the backend expects
-          fileSize: selectedFile ? selectedFile.size : '4.2 MB',
-        }),
+        body: formData,
       });
 
       if (response.ok) {
         router.push('/dashboard');
       } else {
-        console.error('Server rejected deliverables submission.');
+        const errData = await response.json().catch(() => ({}));
+        console.error('Submit error:', errData.error || 'Server rejected deliverables submission.');
       }
     } catch (error) {
       console.error('Network connection error during submission:', error);
@@ -122,21 +122,22 @@ export default function SubmitWorkPage() {
           </label>
 
           <div className="relative border-2 border-dashed border-gray-200 hover:border-[#00C6A9] rounded-lg p-8 bg-gray-50/40 text-center transition-all cursor-pointer group">
-            <input
-              type="file"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  const file = e.target.files[0];
-                  const calculatedSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-                  setSelectedFile({
-                    name: file.name,
-                    size: calculatedSize,
-                  });
-                }
-              }}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              required
-            />
+              <input
+                type="file"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    const calculatedSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                    setSelectedFileObj(file);
+                    setSelectedFile({
+                      name: file.name,
+                      size: calculatedSize,
+                    });
+                  }
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                required
+              />
 
             <svg
               className="w-8 h-8 text-gray-400 group-hover:text-[#00C6A9] mx-auto mb-2 transition-colors"

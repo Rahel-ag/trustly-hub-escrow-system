@@ -1,76 +1,91 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function ApplicationsPage() {
   const router = useRouter();
-  const [apps, setApps] = useState([]);
+  const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchApplications() {
-      try {
-        const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/applications`);
-        const data = await res.json();
-        setApps([...savedJobs, ...(data.data || [])]);
-      } catch (err) {
-        console.error(err);
-        setApps(JSON.parse(localStorage.getItem('savedJobs') || '[]'));
-      } finally {
-        setLoading(false);
-      }
-    }
+    const token = localStorage.getItem('token');
+    if (!token) { router.push('/auth/login'); return; }
 
-    fetchApplications();
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/my-proposals`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setProposals(data.proposals || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const getStatusStyle = (status) =>
-    status === 'Submitted'
-      ? 'bg-green-50 text-green-600'
-      : 'bg-amber-50 text-amber-600';
+  const statusBadge = (status) => {
+    switch (status) {
+      case 'accepted': return 'bg-green-50 text-green-600';
+      case 'rejected': return 'bg-red-50 text-red-500';
+      default: return 'bg-amber-50 text-amber-600';
+    }
+  };
 
   if (loading) {
-    return <div className="p-10 text-xs text-gray-500">Loading your applications...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F7F9]">
+        <p className="text-gray-400 text-xs font-semibold">Loading applications...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="p-10 max-w-5xl mx-auto font-sans">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">My Applications</h1>
-      <p className="text-xs text-gray-400 mb-8">Track your saved positions and active job applications.</p>
+    <div className="max-w-4xl mx-auto p-10 font-sans">
+      <div className="mb-8">
+        <h1 className="text-xl font-bold text-gray-900 mb-1">My Applications</h1>
+        <p className="text-xs text-gray-400">Track all your job proposals.</p>
+      </div>
 
-      {apps.length === 0 ? (
+      {proposals.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-lg p-12 text-center shadow-sm">
-          <p className="text-xs text-gray-500 mb-4">You haven't applied to or saved any jobs yet.</p>
+          <p className="text-xs text-gray-500 mb-4">You have not applied to any jobs yet.</p>
           <button
             onClick={() => router.push('/jobs')}
             className="bg-[#00C6A9] text-white text-xs font-bold px-4 py-2 rounded shadow-sm hover:bg-[#00b096] transition-colors"
           >
-            Explore Jobs
+            Browse Jobs
           </button>
         </div>
       ) : (
         <div className="space-y-3">
-          {apps.map((item) => (
+          {proposals.map((p) => (
             <div
-              key={item.id}
+              key={p.id}
               className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm flex items-center justify-between hover:border-gray-200 transition-all"
             >
-              <div>
-                <h3 className="text-sm font-bold text-gray-900">{item.jobTitle || 'Video Editor Position'}</h3>
-                <p className="text-[11px] text-gray-400 mt-1">Client: {item.clientName || 'Trustly Hub'}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${getStatusStyle(item.status)}`}>
-                  {item.status || 'Saved'}
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-gray-900">{p.job_title || 'Untitled Job'}</h3>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Bid: {p.bid_price || p.budget || '—'} Birr
+                </p>
+                <span className={`inline-block mt-2 px-3 py-1 rounded-full text-[10px] font-bold ${statusBadge(p.status)}`}>
+                  {p.status === 'accepted' ? 'Hired' : p.status === 'rejected' ? 'Declined' : 'Pending'}
                 </span>
-                <button
-                  onClick={() => router.push(`/jobs/${item.jobId}`)}
-                  className="text-xs text-[#00C6A9] font-bold hover:underline"
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {p.status === 'accepted' && (
+                  <Link
+                    href={`/escrow`}
+                    className="text-xs bg-[#00C6A9] text-white font-semibold px-3 py-1.5 rounded hover:bg-[#00b096] transition-colors"
+                  >
+                    Manage Work
+                  </Link>
+                )}
+                <Link
+                  href={`/jobs/${p.job_id}`}
+                  className="text-xs text-[#00C6A9] font-semibold hover:underline"
                 >
-                  View Details →
-                </button>
+                  View Job
+                </Link>
               </div>
             </div>
           ))}

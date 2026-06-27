@@ -12,6 +12,7 @@ export default function ApplicantsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hiring, setHiring] = useState(null);
+  const [amounts, setAmounts] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
 
   const itemsPerPage = 4;
@@ -51,6 +52,8 @@ export default function ApplicantsPage() {
   async function handleHire(proposalId) {
     setHiring(proposalId);
     try {
+      const prop = proposals.find((p) => p.id === proposalId);
+      const amount = amounts[proposalId] || prop?.bid_price || job?.budget;
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/hire/proposals/${proposalId}/accept`,
         {
@@ -59,18 +62,16 @@ export default function ApplicantsPage() {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ amount: job.budget }),
+          body: JSON.stringify({ amount: parseFloat(amount) }),
         }
       );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to hire');
 
-      setProposals((prev) =>
-        prev.map((p) => (p.id === proposalId ? { ...p, status: 'accepted' } : p))
-      );
+      router.push(`/escrow/deposit?jobId=${data.escrow.job_id}`);
     } catch (err) {
-      alert(err.message);
+      setError(err.message);
     } finally {
       setHiring(null);
     }
@@ -181,22 +182,19 @@ export default function ApplicantsPage() {
                           </svg>
                         </div>
                         <div className="leading-tight">
-                          <p className="font-bold text-black">{prop.freelancer?.name || 'Michael Brown'}</p>
-                          <p className="text-[#718096] text-xs font-medium mt-0.5">
-                            {prop.freelancer?.title || 'UI/UX Designer'}
-                          </p>
+                          <p className="font-bold text-black">{prop.freelancer_name || 'Freelancer'}</p>
                         </div>
                       </div>
                     </td>
 
                     <td className="py-6 px-6">
                       <p className="text-black font-medium text-sm leading-relaxed max-w-xl">
-                        {prop.coverLetter || 'I have read your requirements carefully and I can design a professional website.'}
+                        {prop.cover_letter || 'No cover letter provided.'}
                       </p>
                     </td>
 
                     <td className="py-6 px-6 whitespace-nowrap">
-                      <span className="font-bold text-[#149B84] text-base">{prop.bidAmount || '1800'} Birr</span>
+                      <span className="font-bold text-[#149B84] text-base">{prop.bid_price || job?.budget || '—'} Birr</span>
                     </td>
 
                     <td className="py-6 px-8 whitespace-nowrap text-center">
@@ -204,14 +202,27 @@ export default function ApplicantsPage() {
                         <span className="px-5 py-2 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-full inline-block">
                           Hired
                         </span>
+                      ) : proposals.some((p) => p.status === 'accepted') ? (
+                        <span className="px-5 py-2 text-xs font-bold text-gray-500 bg-gray-100 rounded-full inline-block">
+                          Filled
+                        </span>
                       ) : (
-                        <button
-                          onClick={() => handleHire(prop.id)}
-                          disabled={hiring !== null}
-                          className="bg-[#24C6D1] hover:bg-[#1eb3bd] disabled:bg-gray-200 text-white font-bold text-sm py-2.5 px-6 rounded-[8px] transition-all min-w-[100px]"
-                        >
-                          {hiring === prop.id ? '...' : 'Hire +'}
-                        </button>
+                        <div className="flex items-center gap-2 justify-center">
+                          <input
+                            type="number"
+                            placeholder={prop.bid_price || job?.budget || 'Amount'}
+                            defaultValue={prop.bid_price || job?.budget || ''}
+                            onChange={(e) => setAmounts((prev) => ({ ...prev, [prop.id]: e.target.value }))}
+                            className="w-24 text-center border border-gray-200 rounded-lg py-2 text-sm font-medium outline-none focus:border-[#24C6D1]"
+                          />
+                          <button
+                            onClick={() => handleHire(prop.id)}
+                            disabled={hiring !== null}
+                            className="bg-[#24C6D1] hover:bg-[#1eb3bd] disabled:bg-gray-200 text-white font-bold text-sm py-2.5 px-5 rounded-[8px] transition-all min-w-[90px]"
+                          >
+                            {hiring === prop.id ? '...' : 'Hire'}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
