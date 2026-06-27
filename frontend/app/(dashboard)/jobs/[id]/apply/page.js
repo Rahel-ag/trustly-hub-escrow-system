@@ -60,15 +60,13 @@ export default function ApplyForJob() {
       });
 
       if (response.ok) {
-        alert('Proposal submitted successfully!');
         router.push('/jobs');
       } else {
         const data = await response.json().catch(() => ({}));
-        alert(data.message || 'Error submitting proposal');
+        console.error('Proposal error:', data.message || 'Error submitting proposal');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error submitting proposal');
     } finally {
       setIsSubmitting(false);
     }
@@ -92,8 +90,9 @@ export default function ApplyForJob() {
 
   return (
     <div className="flex min-h-screen bg-[#F4F7F9] font-sans">
-
-      {/* MAIN CONTENT */}
+      
+        
+        {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col px-12 py-10">
         {/* Top Header */}
         <div className="flex items-center justify-between mb-10">

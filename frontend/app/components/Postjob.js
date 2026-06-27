@@ -129,18 +129,16 @@ export default function PostJob() {
       // Prepare skills as comma-separated string
       const skillsStr = selectedSkills.map(s => s.name).join(', ');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/post`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}` 
         },
         body: JSON.stringify({ 
-          role, 
-          jobTitle, 
-          jobDescription, 
-          budget, 
-          skills: skillsStr 
+          title: jobTitle, 
+          description: jobDescription, 
+          budget 
         }),
       });
 
