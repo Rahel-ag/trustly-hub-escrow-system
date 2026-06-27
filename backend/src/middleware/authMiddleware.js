@@ -1,80 +1,61 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const pool = require('../shared/db/pool');
 
-const router = express.Router();
-
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password, role, firstName, lastName } = req.body;
-    const fullName = req.body.fullName  `${firstName} ${lastName}`;
-
-    if (!email  !password  !fullName  !role) {
-      return res.status(400).json({ error: 'Missing required fields' });
+const authMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    
+    // Check if Authorization header exists
+    if (!authHeader) {
+        return res.status(401).json({ 
+            error: 'Authentication required', 
+            message: 'No token provided' 
+        });
     }
 
-    const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userExists.rows.length > 0) {
-      return res.status(409).json({ error: 'Email already registered' });
+    // Extract token (remove "Bearer " prefix)
+    const token = authHeader.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ 
+            error: 'Authentication required', 
+            message: 'Invalid token format' 
+        });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, email, role',
-      [email, hashedPassword, role]
-    );
-
-    res.status(201).json({
-      message: 'User registered successfully',
-      user: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email  !password) {
-      return res.status(400).json({ error: 'Email and password required' });
+    try {
+        // Verify the token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // Attach user to request
+        req.user = {
+            id: decoded.id,
+            email: decoded.email,
+            role: decoded.role
+        };
+        
+        // Go to next middleware/route
+        next();
+    } catch (error) {
+        // Handle specific errors
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ 
+                error: 'Authentication failed', 
+                message: 'Invalid token' 
+            });
+        }
+        
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ 
+                error: 'Authentication failed', 
+                message: 'Token expired' 
+            });
+        }
+        
+        // Generic error
+        return res.status(401).json({ 
+            error: 'Authentication failed', 
+            message: error.message 
+        });
     }
+};
 
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const user = result.rows[0];
-
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
-    if (!passwordMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET  'your-secret-key',
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-module.exports = router;
+module.exports = authMiddleware;

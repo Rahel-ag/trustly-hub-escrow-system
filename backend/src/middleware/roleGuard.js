@@ -17,7 +17,7 @@ const roleGuard = (...allowedRoles) => {
         const userRole = req.user.role;
         
         // Check if user's role is allowed
-        if (!roles.map(r => r.toLowerCase()).includes(userRole?.toLowerCase())) {
+        if (!roles.includes(userRole)) {
             return res.status(403).json({
                 error: 'Access denied',
                 message: `Role '${userRole}' does not have permission to access this resource`,
