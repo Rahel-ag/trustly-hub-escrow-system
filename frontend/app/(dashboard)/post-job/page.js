@@ -1,4 +1,4 @@
-import PostJob from '../components/Postjob';
+import PostJob from '../../components/Postjob';
 
 export default function PostJobPage() {
   return <PostJob />;
