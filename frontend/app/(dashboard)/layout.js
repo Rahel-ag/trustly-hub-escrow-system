@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import AuthGuard from '../components/AuthGuard';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -11,18 +12,18 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) { router.push('/auth/login'); return; }
+    if (!token) return;
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
       setRole(user.role);
-    } catch {
-      router.push('/auth/login');
-    }
+    } catch {}
   }, []);
 
   const handleLogout = () => {
-    localStorage.clear();
-    router.push('/auth/login');
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.clear();
+      router.replace('/');
+    }
   };
 
   const clientNav = [
@@ -56,6 +57,7 @@ export default function DashboardLayout({ children }) {
   const navItems = role === 'client' ? clientNav : role === 'freelancer' ? freelancerNav : adminNav;
 
   return (
+    <AuthGuard>
     <div className="flex min-h-screen bg-[#F1F3F6]">
       <aside className="w-[260px] bg-gradient-to-b from-[#05131C] to-[#0E2A3A] text-white flex flex-col justify-between min-h-screen sticky top-0 h-screen z-50 shadow-xl select-none flex-shrink-0">
         <div className="w-full flex-1 overflow-y-auto">
@@ -101,5 +103,6 @@ export default function DashboardLayout({ children }) {
         {children}
       </div>
     </div>
+    </AuthGuard>
   );
 }

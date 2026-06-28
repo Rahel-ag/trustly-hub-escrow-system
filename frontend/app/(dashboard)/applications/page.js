@@ -11,7 +11,7 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) { router.push('/auth/login'); return; }
+    if (!token) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/my-proposals`, {
       headers: { Authorization: `Bearer ${token}` },

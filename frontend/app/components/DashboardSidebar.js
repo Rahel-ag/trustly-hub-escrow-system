@@ -9,8 +9,10 @@ export default function DashboardSidebar({ user }) {
   const router = useRouter();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/auth/login');
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('token');
+      router.replace('/');
+    }
   };
 
   const navItems = [

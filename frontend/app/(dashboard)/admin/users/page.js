@@ -12,7 +12,7 @@ export default function AdminUsersPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    if (!token) { router.push('/auth/login'); return; }
+    if (!token) return;
     fetchUsers();
   }, []);
 

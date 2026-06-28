@@ -13,12 +13,12 @@ export default function PaymentsPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    if (!token) { router.push('/auth/login'); return; }
+    if (!token) return;
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
       setRole(user.role);
       setUserName(user.name || user.email?.split('@')[0] || 'User');
-    } catch { router.push('/auth/login'); return; }
+    } catch { return; }
     fetchEscrows();
   }, []);
 

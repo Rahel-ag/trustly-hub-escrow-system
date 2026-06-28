@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardSidebar from '../components/DashboardSidebar';
+import AuthGuard from '../components/AuthGuard';
 
 // ── helper: decode JWT payload ────────────────────────────────────────────────
 function parseToken(token) {
@@ -265,10 +266,9 @@ export default function ProfilePage() {
   // ── Load profile on mount ──────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) { router.push('/auth/login'); return; }
-
+    if (!token) return;
     const decoded = parseToken(token);
-    if (!decoded) { router.push('/auth/login'); return; }
+    if (!decoded) return;
 
     // Fetch full profile from API
     const fetchProfile = async () => {
@@ -338,6 +338,7 @@ export default function ProfilePage() {
   const metricsToShow = role === 'freelancer' ? freelancerMetrics : clientMetrics;
 
   return (
+    <AuthGuard>
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
       <DashboardSidebar user={user} />
@@ -487,5 +488,6 @@ export default function ProfilePage() {
         />
       )}
     </div>
+    </AuthGuard>
   );
 }

@@ -29,7 +29,7 @@ export default function JobListing() {
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!token) { router.push('/auth/login'); return; }
+    if (!token) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs`, {
       headers: { Authorization: `Bearer ${token}` },

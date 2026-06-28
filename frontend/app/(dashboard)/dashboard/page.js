@@ -17,14 +17,14 @@ export default function DashboardPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    if (!token) { router.push('/auth/login'); return; }
+    if (!token) return;
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
       setRole(user.role);
       setUserName(user.name || user.email?.split('@')[0] || 'User');;
       if (user.role === 'client') fetchClientData();
       else fetchFreelancerData();
-    } catch { router.push('/auth/login'); }
+    } catch {}
   }, []);
 
   async function fetchClientData() {

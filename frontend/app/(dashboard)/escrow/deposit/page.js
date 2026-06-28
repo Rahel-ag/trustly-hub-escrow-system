@@ -17,10 +17,7 @@ export default function EscrowDepositPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    if (!token) { 
-      router.push('/auth/login'); 
-      return; 
-    }
+    if (!token) return;
 
     try {
       const payloadBase64 = token.split('.')[1];
@@ -28,7 +25,7 @@ export default function EscrowDepositPage() {
       
       // Enforce security role validation: Only clients can view this deposit form
       if (decodedPayload.role !== 'client') { 
-        router.push('/jobs'); 
+        router.replace('/jobs'); 
         return; 
       }
 
@@ -38,7 +35,6 @@ export default function EscrowDepositPage() {
       });
     } catch (err) { 
       console.error("Auth routing extraction crashed:", err);
-      router.push('/auth/login'); 
       return; 
     }
 

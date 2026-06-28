@@ -12,10 +12,7 @@ export default function ActiveWorkPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    if (!token) {
-      router.push('/auth/login');
-      return;
-    }
+    if (!token) return;
     setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/active`, {
       headers: { Authorization: `Bearer ${token}` },

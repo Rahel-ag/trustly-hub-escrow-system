@@ -23,10 +23,7 @@ export default function EscrowStatusPage({ params }) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    if (!token) { 
-      router.push('/auth/login'); 
-      return; 
-    }
+    if (!token) return;
     
     // Parse the actual logged-in user profile from JWT payload dynamically
     try {
