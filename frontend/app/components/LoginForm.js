@@ -30,7 +30,8 @@ export default function LoginForm() {
 
       const data = await response.json();
       localStorage.setItem('token', data.token);
-      router.push('/dashboard');
+      const role = data.user?.role;
+      router.push(role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

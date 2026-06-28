@@ -1,5 +1,5 @@
 import PostJob from '../components/Postjob';
 
-export default function Page() {
+export default function PostJobPage() {
   return <PostJob />;
 }

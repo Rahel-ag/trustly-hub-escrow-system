@@ -1,3 +1,6 @@
+process.on('exit', (code) => {
+    console.trace('Process exiting with code:', code);
+});
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -7,7 +10,6 @@ const pool = new Pool({
 
 pool.on('error', (err) => {
     console.error('Unexpected DB pool error:', err);
-    process.exit(-1);
 });
 
 module.exports = pool;
