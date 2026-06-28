@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+  "start": "node server.js",
+  "dev": "node server.js"
+},
     "start": "node server.js",
     "dev": "node server.js",
     "migrate:up": "node-pg-migrate up",
