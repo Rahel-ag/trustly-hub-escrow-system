@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:54321@db:5432/trustly_hub
+      - JWT_SECRET=your_super_secret_key_make_it_long_and_random_12345
+      - CHAPA_SECRET_KEY=CHASECK_TEST-VuHTlKrrL11RdyXH7hSh0HDtqZozdztd
+      - NGROK_URL=https://strict-revered-diffused.ngrok-free.app
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 54321
+      POSTGRES_DB: trustly_hub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
