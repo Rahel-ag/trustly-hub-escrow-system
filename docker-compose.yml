@@ -1,54 +1,29 @@
-version: "3.9"
-
 services:
   frontend:
     build:
       context: ./frontend
-      target: dev
+      target: prod
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - next_cache:/app/.next
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4000/api
-      - FRONTEND_URL=http://localhost:3000
-    depends_on:
-      - backend
+      - NEXT_PUBLIC_API_URL=${RAILWAY_BACKEND_URL}/api
+      - FRONTEND_URL=${RAILWAY_FRONTEND_URL}
 
   backend:
     build:
       context: ./backend
-      target: dev
+      target: prod
     ports:
       - "4000:4000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=4000
-      - DATABASE_URL=postgresql://postgres:54321@db:5432/trustly_hub
-      - JWT_SECRET=your_secret_key_here
-      - CHAPA_SECRET_KEY=CHASECK_TEST-r3jkwIzNreOc8qCH0j6ZbbUwLGLmIaGJ
-      - CHAPA_WEBHOOK_SECRET=my_trustly_secret_project_hash_2026
-      - NGROK_URL=https://ngrok-free.dev
-      - FRONTEND_URL=http://localhost:3000
-    depends_on:
-      - db
-
-  db:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 54321
-      POSTGRES_DB: trustly_hub
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - DATABASE_URL=${RAILWAY_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - CHAPA_SECRET_KEY=${CHAPA_SECRET_KEY}
+      - CHAPA_WEBHOOK_SECRET=${CHAPA_WEBHOOK_SECRET}
+      - NGROK_URL=${RAILWAY_BACKEND_URL}
+      - FRONTEND_URL=${RAILWAY_FRONTEND_URL}
 
 volumes:
-  pgdata:
   next_cache:
