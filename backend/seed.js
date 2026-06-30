@@ -12,19 +12,22 @@ async function seed() {
   await pool.query('DELETE FROM payout_configs')
   await pool.query('DELETE FROM users')
 
-  const passwordHash = await bcrypt.hash('password123', 10)
+  const [adminHash, userHash] = await Promise.all([
+    bcrypt.hash('admin123', 10),
+    bcrypt.hash('pass123', 10)
+  ])
 
   // ── USERS ──
   const users = await pool.query(`
     INSERT INTO users (id, email, password_hash, role, created_at) VALUES
-    (gen_random_uuid(), 'admin@trustly.com', $1, 'admin', NOW()),
-    (gen_random_uuid(), 'client1@test.com', $1, 'client', NOW()),
-    (gen_random_uuid(), 'client2@test.com', $1, 'client', NOW()),
-    (gen_random_uuid(), 'freelancer1@test.com', $1, 'freelancer', NOW()),
-    (gen_random_uuid(), 'freelancer2@test.com', $1, 'freelancer', NOW()),
-    (gen_random_uuid(), 'freelancer3@test.com', $1, 'freelancer', NOW())
+    (gen_random_uuid(), 'admin@trustlyhub.com', $1, 'admin', NOW()),
+    (gen_random_uuid(), 'client1@test.com', $2, 'client', NOW()),
+    (gen_random_uuid(), 'client2@test.com', $2, 'client', NOW()),
+    (gen_random_uuid(), 'freelancer1@test.com', $2, 'freelancer', NOW()),
+    (gen_random_uuid(), 'freelancer2@test.com', $2, 'freelancer', NOW()),
+    (gen_random_uuid(), 'freelancer3@test.com', $2, 'freelancer', NOW())
     RETURNING id, email, role
-  `, [passwordHash])
+  `, [adminHash, userHash])
 
   const admin = users.rows.find(u => u.role === 'admin')
   const client1 = users.rows.find(u => u.email === 'client1@test.com')
@@ -57,14 +60,14 @@ async function seed() {
   // ── PROPOSALS ──
   const proposals = await pool.query(`
     INSERT INTO proposals (id, job_id, freelancer_id, message, status) VALUES
-    (gen_random_uuid(), $1, $4, 'I have 5 years of logo design experience, here is my portfolio link...', 'pending'),
-    (gen_random_uuid(), $1, $5, 'I specialize in fintech branding, would love to work on this.', 'pending'),
-    (gen_random_uuid(), $2, $5, 'I am a content writer with SaaS experience, can deliver in 2 days.', 'pending'),
-    (gen_random_uuid(), $3, $4, 'I have built 10+ React dashboards, here are examples.', 'accepted'),
-    (gen_random_uuid(), $4, $6, 'I can debug this today, send me access to the repo.', 'accepted'),
-    (gen_random_uuid(), $5, $5, 'I am a video editor with Premiere Pro and DaVinci experience.', 'accepted')
+    (gen_random_uuid(), $1, $6, 'I have 5 years of logo design experience, here is my portfolio link...', 'pending'),
+    (gen_random_uuid(), $1, $7, 'I specialize in fintech branding, would love to work on this.', 'pending'),
+    (gen_random_uuid(), $2, $7, 'I am a content writer with SaaS experience, can deliver in 2 days.', 'pending'),
+    (gen_random_uuid(), $3, $6, 'I have built 10+ React dashboards, here are examples.', 'accepted'),
+    (gen_random_uuid(), $4, $8, 'I can debug this today, send me access to the repo.', 'accepted'),
+    (gen_random_uuid(), $5, $7, 'I am a video editor with Premiere Pro and DaVinci experience.', 'accepted')
     RETURNING id, job_id, freelancer_id, status
-  `, [job1.id, job2.id, job3.id, freelancer1.id, freelancer2.id, freelancer3.id])
+  `, [job1.id, job2.id, job3.id, job4.id, job5.id, freelancer1.id, freelancer2.id, freelancer3.id])
 
   console.log('Proposals created:', proposals.rows.length)
 

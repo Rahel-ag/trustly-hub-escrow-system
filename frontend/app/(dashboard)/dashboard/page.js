@@ -37,8 +37,8 @@ export default function DashboardPage() {
       setJobs(jobList);
       setStats({
         totalEscrow: jobList.reduce((sum, j) => sum + Number(j.budget || 0), 0),
-        activeJobs: jobList.filter(j => j.status === 'open').length,
-        completedJobs: jobList.filter(j => j.status === 'closed' || j.status === 'awarded').length,
+        activeJobs: jobList.filter(j => !['completed','closed','awarded','released','refunded'].includes(j.status)).length,
+        completedJobs: jobList.filter(j => ['completed','closed','awarded','released','refunded'].includes(j.status)).length,
       });
     } catch (err) {
       console.error(err);

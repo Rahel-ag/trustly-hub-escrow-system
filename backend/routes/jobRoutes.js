@@ -25,7 +25,7 @@ router.post('/', verifyToken, async (req, res) => {
 
     const newJob = await pool.query(
       'INSERT INTO jobs (title, description, budget, client_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [title, description, budget, clientId, 'OPEN']
+      [title, description, budget, clientId, 'open']
     );
     res.status(201).json({ message: 'Job posted successfully', job: newJob.rows[0] });
   } catch (error) {
@@ -33,7 +33,17 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// 2. Fetch client's own posted jobs
+// 2. Fetch all open jobs (for freelancer browsing)
+router.get('/', verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM jobs WHERE LOWER(status) = 'open'");
+    res.json({ success: true, data: { jobs: result.rows } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. Fetch client's own posted jobs
 router.get('/my', verifyToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM jobs WHERE client_id = $1 ORDER BY id DESC', [req.user.id]);
@@ -43,7 +53,7 @@ router.get('/my', verifyToken, async (req, res) => {
   }
 });
 
-// 3. Fetch single job specification data details
+// 4. Fetch single job specification data details
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM jobs WHERE id = $1', [req.params.id]);

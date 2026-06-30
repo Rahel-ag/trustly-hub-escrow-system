@@ -148,31 +148,30 @@ router.post('/initialize', verifyToken, async (req, res) => {
       [tx_ref, escrowId]
     );
 
-      const chapaFormBody = new URLSearchParams();
-    chapaFormBody.append('amount', String(amount));
-    chapaFormBody.append('currency', 'ETB');
-    chapaFormBody.append('email', String(req.user.email));
-    chapaFormBody.append('first_name', String(req.user.name || req.user.email?.split('@')[0] || 'Client'));
-    chapaFormBody.append('last_name', 'User');
-    chapaFormBody.append('tx_ref', tx_ref);
-    chapaFormBody.append('callback_url', `${process.env.NGROK_URL}/api/chapa/webhook`);
-    
-    chapaFormBody.append('return_url', `http://localhost:4000/api/chapa/return?escrowId=${escrowId}&tx_ref=${tx_ref}`);
-    
-    chapaFormBody.append('customization[title]', 'TrustlyHub'); 
-    chapaFormBody.append('customization[description]', 'Escrow milestone payment');
-
-
     const secretKey = String(process.env.CHAPA_SECRET_KEY).trim();
 
-    // Fire request using x-www-form-urlencoded parsing guidelines
+    const chapaPayload = {
+      amount: String(amount),
+      currency: 'ETB',
+      email: String(req.user.email).replace(/@.+/, '@gmail.com'),
+      first_name: String(req.user.name || req.user.email?.split('@')[0] || 'Client'),
+      last_name: 'User',
+      tx_ref,
+      callback_url: `${process.env.NGROK_URL}/api/chapa/webhook`,
+      return_url: `http://localhost:4000/api/chapa/return?escrowId=${escrowId}&tx_ref=${tx_ref}`,
+      customization: {
+        title: 'TrustlyHub',
+        description: 'Escrow milestone payment',
+      },
+    };
+
     const response = await axios.post(
       'https://api.chapa.co/v1/transaction/initialize',
-      chapaFormBody.toString(),
+      chapaPayload,
       {
         headers: {
           'Authorization': `Bearer ${secretKey}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
       }
     );
