@@ -158,7 +158,7 @@ router.post('/initialize', verifyToken, async (req, res) => {
       last_name: 'User',
       tx_ref,
       callback_url: `${process.env.NGROK_URL}/api/chapa/webhook`,
-      return_url: `http://localhost:4000/api/chapa/return?escrowId=${escrowId}&tx_ref=${tx_ref}`,
+      return_url: `${process.env.NGROK_URL}/api/chapa/return?escrowId=${escrowId}&tx_ref=${tx_ref}`,
       customization: {
         title: 'TrustlyHub',
         description: 'Escrow milestone payment',
