@@ -153,7 +153,7 @@ router.post('/initialize', verifyToken, async (req, res) => {
     const chapaPayload = {
       amount: String(amount),
       currency: 'ETB',
-      email: String(req.user.email).replace(/@.+/, '@gmail.com'),
+      email: String(req.user.email),
       first_name: String(req.user.name || req.user.email?.split('@')[0] || 'Client'),
       last_name: 'User',
       tx_ref,
