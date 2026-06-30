@@ -157,8 +157,8 @@ router.post('/initialize', verifyToken, async (req, res) => {
       first_name: String(req.user.name || req.user.email?.split('@')[0] || 'Client'),
       last_name: 'User',
       tx_ref,
-      callback_url: `${process.env.NGROK_URL}/api/chapa/webhook`,
-      return_url: `${process.env.NGROK_URL}/api/chapa/return?escrowId=${escrowId}&tx_ref=${tx_ref}`,
+      callback_url: `https://trustly-hub-escrow-system-production.up.railway.app/api/chapa/webhook`,
+      return_url: `https://trustly-hub-escrow-system-52rizfpel.vercel.app/escrow/${escrowId}`,
       customization: {
         title: 'TrustlyHub',
         description: 'Escrow milestone payment',
