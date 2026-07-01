@@ -228,6 +228,10 @@ This creates test accounts, jobs, proposals, and escrow transactions in various 
 | Freelancer | freelancer2@test.com | pass123 |
 | Freelancer | freelancer3@test.com | pass123 |
 
+## Deployment
+Frontend (app): https://trustly-hub-escrow-system-52rizfpel.vercel.app
+Backend API: https://trustly-hub-escrow-system-production.up.railway.app
+
 
 ## Known Limitations
 
