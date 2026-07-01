@@ -49,7 +49,7 @@ function EditProfileModal({ user, onClose, onSave }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ function PayoutCard({ payout, onSave }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile/payout`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/payout`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -273,7 +273,7 @@ export default function ProfilePage() {
     // Fetch full profile from API
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -292,7 +292,7 @@ export default function ProfilePage() {
         }
 
         // Fetch metrics
-        const mRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile/metrics`, {
+        const mRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/profile/metrics`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (mRes.ok) {
