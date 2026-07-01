@@ -23,7 +23,7 @@ const authMiddleware = (req, res, next) => {
 
     try {
         // Verify the token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
         
         // Attach user to request
         req.user = {

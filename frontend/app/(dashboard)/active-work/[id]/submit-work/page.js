@@ -42,15 +42,22 @@ export default function SubmitWorkPage() {
     e.preventDefault();
     setSubmitting(true);
 
-    // FIX 4: Read token at call-time so it's always fresh
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     try {
+      // Look up the escrow for this job
+      const escrowRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/escrow/job/${jobId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!escrowRes.ok) throw new Error('Escrow not found for this job');
+      const escrowData = await escrowRes.json();
+      const escrowId = escrowData.escrow?.id || escrowData.escrow_id;
+
       const formData = new FormData();
       formData.append('notes', notes);
       if (selectedFileObj) formData.append('file', selectedFileObj);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hire/active-work/${jobId}/submit`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/escrow/${escrowId}/submit`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
